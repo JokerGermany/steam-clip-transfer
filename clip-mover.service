@@ -1,0 +1,32 @@
+# systemd USER-Unit fuer SteamOS
+# Ablage: ~/.config/systemd/user/clip-mover.service
+#
+# Installation (als Benutzer, Desktop-Modus / Konsole):
+#   mkdir -p ~/bin ~/.config/systemd/user
+#   cp clip-mover.sh ~/bin/ && chmod +x ~/bin/clip-mover.sh
+#   cp clip-mover.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now clip-mover.service
+#   # optional: auch ohne Login-Session laufen lassen
+#   sudo loginctl enable-linger "$USER"
+#
+# Status/Log:
+#   systemctl --user status clip-mover
+#   journalctl --user -u clip-mover -f
+
+[Unit]
+Description=Steam Game-Recording Clip Mover
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/bin/clip-mover.sh
+Restart=always
+RestartSec=30
+# niedrige Prioritaet, damit Spiele nicht ausgebremst werden
+Nice=15
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=default.target
