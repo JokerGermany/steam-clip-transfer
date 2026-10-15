@@ -36,6 +36,8 @@ Deck deletes the source only after the server exits with 0
 | A (`clip_notify`) | Deck → Server | Run `clip-pull.sh` with one strictly validated relative path. No shell, no PTY, no forwarding (`restrict,command=…`). |
 | B (`clip_pull`) | Server → Deck | Read-only rsync below `Steam/userdata` via `rrsync -ro`, optionally limited by `from=`. No write, no delete, no shell. |
 
+The guarantees for key B only hold with the `rrsync` setup. See *Insecure variant* below.
+
 - The server account (`clipsync`) has no sudo and only write access to the
   destination directory.
 - The Deck deletes its own files. The server never needs write access to the Deck.
@@ -102,6 +104,29 @@ sources since 3.2.4) in `~/bin/rrsync` and adjust the path below.
 restrict,from="<server-ip>",command="/usr/bin/rrsync -ro /home/<deck-user>/.local/share/Steam/userdata" ssh-ed25519 AAAA... clip-pull
 ```
 
+With `rrsync`, set `CLIP_PULL_REMOTE_BASE=""` in `clip-pull.sh`, because
+`rrsync` already starts in `Steam/userdata`.
+
+#### Insecure variant: no restrictions on the Deck
+
+If you do not want to touch `authorized_keys` options on the Deck, add key B
+as a plain line:
+
+```
+ssh-ed25519 AAAA... clip-pull
+```
+
+and leave `CLIP_PULL_REMOTE_BASE` at its default
+(`.local/share/Steam/userdata`, relative to the Deck user's home).
+
+> **Warning:** Key B then grants a **full shell** on the Deck. Anyone who
+> controls the `clipsync` account on the server can read, modify and delete
+> anything the Deck user can, and run `sudo` if no password is required.
+> The read-only guarantee and the `from=` restriction from the security model
+> above **no longer apply**. The server becomes a single point of compromise
+> for every Deck. Only use this in a trusted network, and prefer the `rrsync`
+> variant.
+
 Disable password login, e.g. `/etc/ssh/sshd_config.d/10-keyonly.conf`:
 
 ```
@@ -135,6 +160,7 @@ sudo loginctl enable-linger "$USER"     # optional: run without an active sessio
 |----------|---------|---------|
 | `NOTIFY_TARGET` | `clipsync@server` | Server account with the forced command |
 | `NOTIFY_KEY` | `~/.ssh/clip_notify` | Key A |
+| `DEVICE_USER` | output of `id -un` | User name on this device, sent to the server so it pulls as the right user (`deck` on Steam Deck, `steamos` on Steam Frame) |
 | `STEAM_USERDATA` | `~/.local/share/Steam/userdata` | Steam userdata root |
 | `WATCH_SUBPATH` | `gamerecordings/video` | Watched path below each user ID |
 | `STEAM_ROOT` | `~/.local/share/Steam` | Used to resolve game names |
@@ -144,7 +170,10 @@ sudo loginctl enable-linger "$USER"     # optional: run without an active sessio
 | `NOTIFY_ATTEMPTS` / `NOTIFY_RETRY_DELAY` | `3` / `30` | Retries if the server reports an error |
 | `LOG_FILE` | `~/clip-mover.log` | Log file (also visible via `journalctl --user -u clip-mover`) |
 
-`clip-pull.sh` uses `CLIP_PULL_DEST`, `CLIP_PULL_KEY`, `CLIP_PULL_DECK_USER`,
+`clip-pull.sh` uses `CLIP_PULL_REMOTE_BASE` (path to `Steam/userdata` relative
+to the Deck user's home; default `.local/share/Steam/userdata`, set to `""`
+when using `rrsync`), `CLIP_PULL_HOSTKEY_ALIAS` (default `steamos`, one alias
+for the host keys of all devices), `CLIP_PULL_DEST`, `CLIP_PULL_KEY`, `CLIP_PULL_DECK_USER` (fallback if the device sends no user name),
 `CLIP_PULL_DECK_HOST` (empty = IP of the connecting Deck), `CLIP_PULL_LOG_FILE`
 and `CLIP_PULL_LOCK`.
 

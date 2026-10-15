@@ -14,8 +14,9 @@
 
 set -uo pipefail
 
-DEST="${CLIP_PULL_DEST:-/Raid1-1/creator/unfertig/gamerecording/clips/}"
+DEST="${CLIP_PULL_DEST:-/media/HDD/steamexport/unfertig/gamerecording/clips}"
 PULL_KEY="${CLIP_PULL_KEY:-$HOME/.ssh/clip_pull}"
+# Standard-Benutzer auf dem Geraet, falls clip-mover.sh keinen mitschickt
 DECK_USER="${CLIP_PULL_DECK_USER:-steamos}"
 # Leer = IP-Adresse der eingehenden Verbindung verwenden (Deck per DHCP).
 DECK_HOST="${CLIP_PULL_DECK_HOST:-}"
@@ -35,6 +36,18 @@ rel="${SSH_ORIGINAL_COMMAND:-}"
 
 # Erreichbarkeitstest des Decks
 [ "$rel" = "ping" ] && exit 0
+
+# Format: "[<benutzer> ]<pfad>". Der Benutzername des Geraets ist optional
+# (aeltere clip-mover.sh senden nur den Pfad -> DECK_USER als Standard).
+if [[ "$rel" == *" "* ]]; then
+    req_user="${rel%% *}"
+    rel="${rel#* }"
+    if ! [[ "$req_user" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]]; then
+        log "ABGELEHNT: ungueltiger Benutzername '$req_user'"
+        exit 2
+    fi
+    DECK_USER="$req_user"
+fi
 
 # Strenge Pruefung: <ziffern>/gamerecordings/video/<name>, kein '..'
 if ! [[ "$rel" =~ ^[0-9]+/gamerecordings/video/([A-Za-z0-9._-]+)$ ]]; then

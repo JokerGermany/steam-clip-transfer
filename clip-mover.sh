@@ -30,6 +30,9 @@ WATCH_SUBPATH="${CLIP_MOVER_WATCH_SUBPATH:-${WATCH_SUBPATH:-gamerecordings/video
 
 # Server-Account, dessen authorized_keys den Key auf clip-pull.sh zwingt
 NOTIFY_TARGET="${CLIP_MOVER_NOTIFY_TARGET:-${NOTIFY_TARGET:-clipsync@server}}"   # ANPASSEN
+# Benutzername auf diesem Geraet, wird dem Server mitgeschickt
+# (Steam Deck: deck, Steam Frame: steamos)
+DEVICE_USER="${CLIP_MOVER_DEVICE_USER:-${DEVICE_USER:-$(id -un)}}"
 NOTIFY_KEY="${CLIP_MOVER_NOTIFY_KEY:-${NOTIFY_KEY:-$HOME/.ssh/clip_notify}}"
 SSH_OPTS="${CLIP_MOVER_SSH_OPTS:-${SSH_OPTS:--o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=30 -o ServerAliveCountMax=4}}"
 
@@ -178,7 +181,7 @@ write_game_name() {
 notify_server() {
     local rel="$1"
     # shellcheck disable=SC2086
-    ssh $SSH_OPTS -i "$NOTIFY_KEY" -o IdentitiesOnly=yes "$NOTIFY_TARGET" "$rel"
+    ssh $SSH_OPTS -i "$NOTIFY_KEY" -o IdentitiesOnly=yes "$NOTIFY_TARGET" "$DEVICE_USER $rel"
 }
 
 handle_folder() {
