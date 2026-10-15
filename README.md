@@ -40,7 +40,7 @@ Deck deletes the source only after the server exits with 0
   destination directory.
 - The Deck deletes its own files. The server never needs write access to the Deck.
 - The server pulls from the IP the notification came from. The Deck's host key
-  is pinned via `HostKeyAlias=steamdeck`, so a foreign host at the same IP is
+  is pinned via `HostKeyAlias=steamos`, so a foreign host at the same IP is
   rejected.
 
 ## Files
@@ -76,7 +76,7 @@ restrict,command="/usr/local/bin/clip-pull.sh" ssh-ed25519 AAAA... deck-notify
 Pin the Deck's host key once (any current IP):
 
 ```bash
-sudo -u clipsync ssh -o HostKeyAlias=steamdeck -i ~clipsync/.ssh/clip_pull <deck-user>@<deck-ip> true
+sudo -u clipsync ssh -o HostKeyAlias=steamos -i ~clipsync/.ssh/clip_pull <deck-user>@<deck-ip> true
 ```
 
 ### Steam Deck

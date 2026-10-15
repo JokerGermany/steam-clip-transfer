@@ -14,11 +14,18 @@
 
 set -uo pipefail
 
-DEST="${CLIP_PULL_DEST:-/media/HDD/steamexport/unfertig/gamerecording/clips}"
+DEST="${CLIP_PULL_DEST:-/Raid1-1/creator/unfertig/gamerecording/clips/}"
 PULL_KEY="${CLIP_PULL_KEY:-$HOME/.ssh/clip_pull}"
 DECK_USER="${CLIP_PULL_DECK_USER:-steamos}"
 # Leer = IP-Adresse der eingehenden Verbindung verwenden (Deck per DHCP).
 DECK_HOST="${CLIP_PULL_DECK_HOST:-}"
+# Alias, unter dem die Host-Keys ALLER Geraete in known_hosts stehen
+# (mehrere Zeilen mit demselben Alias sind erlaubt, jede passt).
+HOSTKEY_ALIAS="${CLIP_PULL_HOSTKEY_ALIAS:-steamos}"
+# Pfad zu Steam/userdata auf dem Geraet, relativ zu dessen Home.
+# Ohne rrsync auf dem Geraet: Standardwert lassen.
+# Mit rrsync -ro .../userdata auf dem Geraet: leer setzen ("").
+REMOTE_BASE="${CLIP_PULL_REMOTE_BASE-.local/share/Steam/userdata}"
 LOG_FILE="${CLIP_PULL_LOG_FILE:-$HOME/clip-pull.log}"
 LOCK_FILE="${CLIP_PULL_LOCK:-$HOME/.clip-pull.lock}"
 
@@ -51,13 +58,13 @@ tmp="$DEST/.pull-tmp-$name"
 final="$DEST/$name"
 
 log "Hole '$rel' von $DECK_HOST ..."
-# HostKeyAlias: Host-Key des Decks ist fest hinterlegt, egal welche IP.
+# HostKeyAlias: Host-Keys der Geraete sind fest hinterlegt, egal welche IP.
 # --partial + kein Loeschen von $tmp: Wiederholungen setzen fort.
 # --timeout: rsync bricht ab, wenn 60s keine Daten fliessen
 # ServerAlive*: tote SSH-Verbindung nach ~90s erkennen
 if ! rsync -a --partial --timeout=60 \
-        -e "ssh -i $PULL_KEY -o IdentitiesOnly=yes -o BatchMode=yes -o HostKeyAlias=steamdeck -o ConnectTimeout=10 -o ServerAliveInterval=30 -o ServerAliveCountMax=3" \
-        "$DECK_USER@$DECK_HOST:$rel/" "$tmp/"; then
+        -e "ssh -i $PULL_KEY -o IdentitiesOnly=yes -o BatchMode=yes -o HostKeyAlias=$HOSTKEY_ALIAS -o ConnectTimeout=10 -o ServerAliveInterval=30 -o ServerAliveCountMax=3" \
+        "$DECK_USER@$DECK_HOST:${REMOTE_BASE:+$REMOTE_BASE/}$rel/" "$tmp/"; then
     log "FEHLER: rsync fuer '$rel' fehlgeschlagen"
     exit 5
 fi
